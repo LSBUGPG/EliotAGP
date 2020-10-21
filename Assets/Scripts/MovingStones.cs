@@ -9,35 +9,24 @@ public class MovingStones : MonoBehaviour
     float rotSpeed;
     public float speed;
     float WPradius = 1;
-    public GameObject Player;
+    Rigidbody physics = null;
 
-    private GameObject target = null;
-    private Vector3 offset;
+    private ThirdPersonMovement player = null;
     void Start()
     {
-        target = null;
+        physics = GetComponent<Rigidbody>();
     }
-    void OnCollisionEnter(Collision col)
+    public void PushPlayer(ThirdPersonMovement player)
     {
-        Debug.Log ("HELLO");
-        target = col.gameObject;
-        offset = target.transform.position - transform.position;
+        this.player = player;
     }
-    void OnCollisionExit(Collision col)
+    public void StopPushingPlayer()
     {
-        target = null;
+        player = null;
     }
-    void LateUpdate()
-    {
-        if (target != null)
-        {
-            target.transform.position = transform.position + offset;
-        }
-    }
-
 
     // Update is called once per frame
-    void Update()
+    void FixedUpdate()
     {
         if(Vector3.Distance(waypoints[current].transform.position, transform.position) < WPradius)
         {
@@ -47,7 +36,15 @@ public class MovingStones : MonoBehaviour
                 current = 0;
             }
         }
-        transform.position = Vector3.MoveTowards(transform.position, waypoints[current].transform.position, Time.deltaTime * speed);
+        Vector3 previous = transform.position;
+        if (physics != null)
+        {
+            Vector3 moveTo = Vector3.MoveTowards(transform.position, waypoints[current].transform.position, Time.deltaTime * speed);
+            physics.MovePosition(moveTo);
+            if (player != null)
+            {
+                player.Push(moveTo - previous);
+            }
+        }
     }
 }
-

@@ -23,9 +23,15 @@ public class ThirdPersonMovement : MonoBehaviour
 
     Vector3 velocity;
     bool isGrounded;
+    MovingStones touchingStone = null;
+    Vector3 pushed = Vector3.zero;
 
-    // Update is called once per frame
-    void Update()
+    public void Push(Vector3 push)
+    {
+        pushed += push;
+    }
+
+    void FixedUpdate()
     {
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
@@ -48,12 +54,44 @@ public class ThirdPersonMovement : MonoBehaviour
             controller.Move(moveDir.normalized * speed * Time.deltaTime);
         }
 
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        if (Input.GetButtonDown("Jump") && (isGrounded || touchingStone != null))
         {
             velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
         velocity.y += gravity * Time.deltaTime;
 
-        controller.Move(velocity * Time.deltaTime);
+        controller.Move(velocity * Time.deltaTime + pushed);
+
+        pushed = Vector3.zero;
+    }
+
+    void OnTriggerEnter(Collider collider)
+    {
+        MovingStones stone = collider.gameObject.GetComponent<MovingStones>();
+        if (stone != null)
+        {
+            if (touchingStone != null && touchingStone != stone)
+            {
+                touchingStone.StopPushingPlayer();
+            }
+
+            stone.PushPlayer(this);
+            touchingStone = stone;
+            Debug.LogFormat("Set stone {0} to push player", stone.gameObject.name);
+        }
+    }
+    
+    void OnTriggerExit(Collider collider)
+    {
+        MovingStones stone = collider.gameObject.GetComponent<MovingStones>();
+        if (stone != null)
+        {
+            if (touchingStone == stone)
+            {
+                Debug.LogFormat("Set stone {0} to stop pushing player", stone.gameObject.name);
+                touchingStone.StopPushingPlayer();
+                touchingStone = null;
+            }
+        }
     }
 }
